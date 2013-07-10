@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+  <title>SECTA | Stack Exchange Cross-Tag Analysis</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    .link {
+      stroke: #ddd;
+    }
+
+    .node {
+      cursor: move;
+    }
+
+    .node text {
+      text-anchor: middle;
+      pointer-events: none;
+      font: 10px sans-serif;
+    }
+
+    .node text.shadow {
+      text-anchor: middle;
+      stroke: #fff;
+      stroke-width: 3px;
+    }
+  </style>
+</head>
+
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>
+  <script>
+    // Get the JSON data from the server
+    d3.json('graph.json', function(error, json) {
+      if (error) return console.warn(error);
+      visualize(json);
+    });
+
+    // Visualize the data
+    var visualize = function(json) {
+      var width = window.innerWidth,
+        height = window.innerHeight
+
+      var svg = d3.select("body")
+        .append("svg:svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append('svg:g')
+        .call(d3.behavior.zoom().on("zoom", redraw))
+        .on("mousedown.zoom", null)
+        .append('svg:g');
+
+      svg.append("svg:rect")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("fill", "white")
+        .attr("class", "movable");
+
+      function redraw() {
+        svg.attr("transform",
+          "translate(" + d3.event.translate + ")" + " scale(" + d3.event.scale + ")");
+      }
+
+      var force = d3.layout.force()
+        .distance(20)
+        .charge(-600)
+        .linkStrength(function(d) {
+          return d.weight;
+        })
+        .size([width, height]);
+
+      force
+        .nodes(json.nodes)
+        .links(json.edges)
+        .start();
+
+      var link = svg.selectAll(".link")
+        .data(json.edges)
+        .enter().append("line")
+        .attr("class", "link")
+        .style("stroke-width", function(d) {
+          return d.weight * 6;
+        });
+
+      var node = svg.selectAll(".node")
+        .data(json.nodes)
+        .enter().append("g")
+        .attr("class", "node")
+        .call(force.drag);
+
+      node.append("image")
+        .attr("xlink:href", "https://cdn.sstatic.net/stackexchange/img/favicon.ico")
+        .attr("x", -8)
+        .attr("y", -8)
+        .attr("width", 16)
+        .attr("height", 16);
+
+      node.append("text")
+        .attr("dy", "1.8em")
+        .attr("class", "shadow")
+        .text(function(d) {
+          return d.name;
+        });
+
+      node.append("text")
+        .attr("dy", "1.8em")
+        .text(function(d) {
+          return d.name
+        });
+
+      force.on("tick", function() {
+        link.attr("x1", function(d) {
+            return d.source.x;
+          })
+          .attr("y1", function(d) {
+            return d.source.y;
+          })
+          .attr("x2", function(d) {
+            return d.target.x;
+          })
+          .attr("y2", function(d) {
+            return d.target.y;
+          });
+
+        node.attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")";
+        });
+      });
+    }
+  </script>
+</body>
+
+</html>
